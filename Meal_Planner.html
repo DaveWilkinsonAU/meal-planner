@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meal Planner — Dave & Tamara</title>
+<style>
+  :root {
+    color-scheme: light;
+    --teal: #2E7D7D;
+    --deep: #1F3A3A;
+    --soft: #EAF2F2;
+    --accent: #C44536;
+    --cream: #FAF7F2;
+    --ink: #1A1A1A;
+    --muted: #5b6770;
+    --line: #D7DCDC;
+    --warn: #B45309;
+    --ok: #2F855A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--cream); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5; }
+  a { color: var(--teal); text-decoration: none; cursor: pointer; }
+  a:hover { text-decoration: underline; }
+
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; } }
+
+  .sidebar {
+    background: var(--deep);
+    color: #DCE8E8;
+    padding: 20px 16px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar h1 { font-size: 20px; margin: 0 0 4px 0; color: #fff; letter-spacing: 0.5px; }
+  .sidebar .subtitle { font-size: 11px; color: #8FB3B3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px; }
+  .sidebar nav a {
+    display: block; color: #C9D8D8; padding: 8px 10px; border-radius: 4px; font-size: 14px;
+    margin-bottom: 1px; cursor: pointer;
+  }
+  .sidebar nav a:hover { background: rgba(255,255,255,0.06); text-decoration: none; color: #fff; }
+  .sidebar nav a.active { background: var(--teal); color: #fff; }
+
+  main { padding: 32px 40px 80px; max-width: 1200px; }
+  @media (max-width: 600px) { main { padding: 20px 16px 60px; } }
+
+  h1.page { font-size: 32px; margin: 0 0 6px 0; color: var(--deep); }
+  h2 { color: var(--deep); margin-top: 36px; border-bottom: 2px solid var(--soft); padding-bottom: 6px; font-size: 22px; }
+  h3 { color: var(--teal); font-size: 17px; margin-top: 26px; }
+  p { margin: 8px 0 12px; }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .hero {
+    background: linear-gradient(135deg, var(--teal), var(--deep));
+    color: #fff; border-radius: 12px; padding: 24px 28px; margin-bottom: 28px;
+    box-shadow: 0 4px 20px rgba(31,58,58,0.15);
+  }
+  .hero .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #9FC4C4; }
+  .hero h2 { color: #fff; border: none; padding: 0; margin: 4px 0 8px; font-size: 28px; }
+  .hero .summary { font-size: 15px; color: #E6F0F0; margin-top: 6px; }
+  .hero .strategies { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  @media (max-width: 700px) { .hero .strategies { grid-template-columns: 1fr; } }
+  .hero .strategy { background: rgba(255,255,255,0.08); padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+  .hero .strategy strong { display: block; color: #fff; font-size: 14px; margin-bottom: 4px; letter-spacing: 0.3px; text-transform: uppercase; }
+
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; margin: 14px 0; }
+  .card h3 { margin-top: 0; }
+
+  .day-card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; margin: 14px 0; }
+  .day-card .day-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--soft); padding-bottom: 8px; margin-bottom: 12px; }
+  .day-card .day-name { font-size: 20px; font-weight: 700; color: var(--deep); }
+  .day-card .day-date { color: var(--muted); font-size: 13px; }
+  .day-card .training-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 10px 0 14px; }
+  @media (max-width: 700px) { .day-card .training-row { grid-template-columns: 1fr; } }
+  .training-cell { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 13px; }
+  .training-cell .who { font-weight: 700; color: var(--deep); text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; }
+  .training-cell .activity { color: var(--ink); margin-top: 3px; font-size: 14px; }
+  .training-cell .macros { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .meal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px; }
+  @media (max-width: 800px) { .meal-grid { grid-template-columns: 1fr; } }
+  .meal-card { background: var(--cream); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; position: relative; }
+  .meal-card .slot { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); font-weight: 700; }
+  .meal-card .name { font-weight: 600; color: var(--deep); margin: 4px 0; font-size: 15px; line-height: 1.3; }
+  .meal-card .ingredients { font-size: 12px; color: var(--muted); margin: 6px 0; font-style: italic; }
+  .meal-card .serving, .snack-card .serving {
+    font-size: 12px; color: var(--ink); margin: 4px 0;
+    padding: 4px 8px; border-radius: 0 3px 3px 0;
+    background: rgba(46,125,125,0.06); border-left: 2px solid var(--teal);
+  }
+  .meal-card .serving.serving-tamara, .snack-card .serving.serving-tamara {
+    background: rgba(196,69,54,0.07); border-left-color: var(--accent);
+  }
+  .meal-card .serving.serving-dave, .snack-card .serving.serving-dave {
+    background: rgba(46,125,125,0.08); border-left-color: var(--teal);
+  }
+  .meal-card .serving-who { font-weight: 700; color: var(--deep); }
+  .serving.serving-tamara .serving-who { color: var(--accent); }
+  .serving.serving-dave .serving-who { color: var(--teal); }
+  .meal-card .meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .meal-card .swap-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--teal);
+    border-radius: 4px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+    margin-top: 8px; font-weight: 600;
+  }
+  .meal-card .swap-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .meal-card .swap-btn:disabled { opacity: 0.5; cursor: wait; }
+  .meal-card .save-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--accent);
+    border-radius: 4px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+    margin-top: 8px; margin-left: 6px; font-weight: 600;
+  }
+  .meal-card .save-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .meal-card .save-btn.saved { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .meal-card.swapping { opacity: 0.6; }
+  .meal-card .swap-error { color: var(--accent); font-size: 11px; margin-top: 6px; }
+  .snacks { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .snacks .slot { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--teal); font-weight: 700; margin-bottom: 6px; }
+  .snack-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .snack-card { background: var(--cream); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 13px; position: relative; }
+  .snack-card .name { color: var(--deep); font-weight: 600; }
+  .snack-card .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .snack-card .swap-btn { background: transparent; border: 1px solid var(--line); color: var(--teal); border-radius: 3px; padding: 2px 8px; font-size: 10px; cursor: pointer; margin-top: 6px; font-weight: 600; }
+  .snack-card .swap-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .snack-card .swap-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px;
+    font-weight: 600; letter-spacing: 0.3px;
+  }
+  .pill.teal { background: var(--soft); color: var(--deep); }
+  .pill.accent { background: #FBE9E5; color: var(--accent); }
+  .pill.warn { background: #FEF3C7; color: var(--warn); }
+  .pill.ok { background: #D1FAE5; color: var(--ok); }
+  .pill.muted { background: #F0F0F0; color: var(--muted); }
+
+  .pill.cat-vegetarian { background: #D1FAE5; color: var(--ok); }
+  .pill.cat-pescatarian { background: var(--soft); color: var(--deep); }
+  .pill.cat-meat { background: #FBE9E5; color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--soft); color: var(--deep); font-weight: 600; font-size: 13px; }
+
+  .training-grid { width: 100%; border-collapse: collapse; }
+  .training-grid th { background: var(--soft); padding: 10px; text-align: left; font-size: 13px; color: var(--deep); border-bottom: 2px solid var(--line); }
+  .training-grid td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .training-grid .day-col { font-weight: 700; color: var(--deep); width: 80px; }
+  .training-grid select, .training-grid input[type=number], .training-grid input[type=text] {
+    padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; font-family: inherit;
+    width: 100%;
+  }
+  .training-grid input[type=number] { max-width: 90px; }
+  .training-grid .person-section { display: grid; grid-template-columns: 1.1fr 0.55fr 0.85fr 0.7fr; gap: 6px; }
+  .training-grid .person-label { font-weight: 600; color: var(--teal); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+  .meal-mix { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
+  .meal-mix h3 { margin-top: 0; }
+  .meal-mix .inputs { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 14px; align-items: end; }
+  @media (max-width: 700px) { .meal-mix .inputs { grid-template-columns: 1fr 1fr; } }
+  .meal-mix label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .meal-mix input[type=number] { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 16px; width: 100%; max-width: 100px; }
+  .meal-mix .total { font-size: 14px; font-weight: 600; }
+  .meal-mix .total.ok { color: var(--ok); }
+  .meal-mix .total.bad { color: var(--accent); }
+
+  .btn-primary {
+    background: var(--teal); color: #fff; border: none; padding: 12px 24px;
+    border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;
+    margin-top: 18px; font-family: inherit;
+  }
+  .btn-primary:hover { background: var(--deep); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent; color: var(--teal); border: 1px solid var(--teal);
+    padding: 8px 16px; border-radius: 4px; font-size: 13px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+  }
+  .btn-secondary:hover { background: var(--teal); color: #fff; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px;
+    font-size: 14px; font-family: inherit;
+  }
+  .form-row textarea { min-height: 80px; resize: vertical; }
+  .form-row .help { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .callout { border-left: 4px solid var(--teal); background: var(--soft); padding: 12px 16px; margin: 14px 0; border-radius: 4px; }
+  .callout.warn { border-color: var(--accent); background: #FBE9E5; }
+  .callout.ok { border-color: var(--ok); background: #D1FAE5; }
+
+  .small { font-size: 13px; color: var(--muted); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state h2 { border: none; color: var(--muted); }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(46,125,125,0.3); border-top-color: var(--teal);
+    border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle;
+  }
+  .spinner.large { width: 32px; height: 32px; border-width: 3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .shopping-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
+  .shopping-section { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .shopping-section h4 { margin: 0 0 8px 0; color: var(--deep); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .shopping-section ul { margin: 0; padding-left: 18px; font-size: 13px; }
+  .shopping-section li { margin: 2px 0; }
+
+  .menu-btn { display: none; background: var(--deep); color: #fff; padding: 10px 16px; border: none; border-radius: 4px; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+  @media (max-width: 820px) {
+    .menu-btn { display: inline-block; }
+    .sidebar { display: none; }
+    .sidebar.open { display: block; position: fixed; z-index: 100; width: 260px; }
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .errbox { background: #FBE9E5; border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 4px; margin: 14px 0; color: var(--accent); font-size: 14px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <h1>MEAL PLANNER</h1>
+    <div class="subtitle">Dave & Tamara</div>
+    <nav id="nav">
+      <a data-view="plan" class="active">This Week's Plan</a>
+      <a data-view="training">Training Week</a>
+      <a data-view="saved">Saved Meals</a>
+      <a data-view="profiles">Profiles</a>
+      <a data-view="preferences">Preferences</a>
+      <a data-view="settings">Settings</a>
+    </nav>
+  </aside>
+
+  <main>
+    <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
+
+    <!-- THIS WEEK'S PLAN -->
+    <section id="view-plan" class="view active">
+      <div id="plan-content"></div>
+    </section>
+
+    <!-- TRAINING WEEK -->
+    <section id="view-training" class="view">
+      <h1 class="page">Training Week</h1>
+      <p class="small">Enter the upcoming week's training for both Dave and Tamara. Then set the meal mix and click Generate.</p>
+
+      <div class="form-row" style="max-width: 240px;">
+        <label>Week starting (Monday)</label>
+        <input type="date" id="weekStart" />
+      </div>
+
+      <table class="training-grid">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>
+              <div class="person-label">Tamara</div>
+              <div class="person-section">
+                <div>Activity</div><div>Min</div><div>Intensity</div><div>Time</div>
+              </div>
+            </th>
+            <th>
+              <div class="person-label">Dave</div>
+              <div class="person-section">
+                <div>Activity</div><div>Min</div><div>Intensity</div><div>Time</div>
+              </div>
+            </th>
+            <th>Dinner must use</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="training-body"></tbody>
+      </table>
+
+      <div class="meal-mix">
+        <h3>Dinner Mix</h3>
+        <p class="small">Set the dinner categories for the week (must sum to 7). Breakfasts are always vegetarian; lunches are pescatarian (e.g. tuna) or previous-night leftovers — no need to specify.</p>
+        <div class="inputs">
+          <div>
+            <label>Vegetarian dinners</label>
+            <input type="number" id="mix-veg" min="0" max="7" value="1" />
+          </div>
+          <div>
+            <label>Pescatarian dinners</label>
+            <input type="number" id="mix-pesc" min="0" max="7" value="5" />
+          </div>
+          <div>
+            <label>Meat dinners</label>
+            <input type="number" id="mix-meat" min="0" max="7" value="1" />
+          </div>
+          <div>
+            <label>Total</label>
+            <div class="total" id="mix-total">7 / 7</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="generate-btn">Generate Meal Plan</button>
+      <div id="generate-status"></div>
+    </section>
+
+    <!-- SAVED MEALS -->
+    <section id="view-saved" class="view">
+      <h1 class="page">Saved Meals</h1>
+      <p class="small">Meals you've saved from generated plans. Up to 40% of a new week's meals (max 8 of 21) can be drawn from this list to keep things familiar but varied.</p>
+      <div id="saved-content"></div>
+    </section>
+
+    <!-- PROFILES -->
+    <section id="view-profiles" class="view">
+      <h1 class="page">Profiles</h1>
+      <p class="small">Used by Claude to calculate per-person macro targets. Update as bodyweight or goals shift.</p>
+
+      <div class="form-grid">
+        <div class="card">
+          <h3>Tamara</h3>
+          <div class="form-row"><label>Weight (kg)</label><input type="number" id="t-weight" /></div>
+          <div class="form-row"><label>Height (cm)</label><input type="number" id="t-height" /></div>
+          <div class="form-row"><label>Age</label><input type="number" id="t-age" /></div>
+          <div class="form-row"><label>Sex</label><select id="t-sex"><option>F</option><option>M</option></select></div>
+          <div class="form-row"><label>Goal</label><input type="text" id="t-goal" /></div>
+          <div class="form-row"><label>Daily protein floor (g)</label><input type="number" id="t-protein" /></div>
+          <div class="form-row"><label>Supplements</label><input type="text" id="t-supps" /></div>
+          <div class="form-row"><label>Allergies / dislikes</label><textarea id="t-allergies"></textarea></div>
+        </div>
+        <div class="card">
+          <h3>Dave</h3>
+          <div class="form-row"><label>Weight (kg)</label><input type="number" id="d-weight" /></div>
+          <div class="form-row"><label>Height (cm)</label><input type="number" id="d-height" /></div>
+          <div class="form-row"><label>Age</label><input type="number" id="d-age" /></div>
+          <div class="form-row"><label>Sex</label><select id="d-sex"><option>M</option><option>F</option></select></div>
+          <div class="form-row"><label>Goal</label><input type="text" id="d-goal" /></div>
+          <div class="form-row"><label>Daily protein floor (g)</label><input type="number" id="d-protein" /></div>
+          <div class="form-row"><label>Supplements</label><input type="text" id="d-supps" /></div>
+          <div class="form-row"><label>Allergies / dislikes</label><textarea id="d-allergies"></textarea></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="profiles-save">Save Profiles</button>
+      <span id="profiles-saved" class="small" style="margin-left: 12px;"></span>
+    </section>
+
+    <!-- PREFERENCES -->
+    <section id="view-preferences" class="view">
+      <h1 class="page">Preferences</h1>
+      <p class="small">Free-text guidance passed to Claude alongside the profiles. Use this for favorites, foods to avoid, time budget, anything else.</p>
+
+      <div class="card">
+        <div class="form-row">
+          <label>Favorite meals</label>
+          <textarea id="pref-favs" placeholder="e.g. Thai green curry, salmon poke bowls, halloumi salad..."></textarea>
+        </div>
+        <div class="form-row">
+          <label>Foods to avoid</label>
+          <textarea id="pref-avoid" placeholder="e.g. tofu, mushrooms, anything with cilantro..."></textarea>
+        </div>
+        <div class="form-row">
+          <label>Weeknight time budget</label>
+          <textarea id="pref-time" placeholder="e.g. 30 min Mon–Thu, longer cooks Fri/Sat"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Anything else</label>
+          <textarea id="pref-other" placeholder="Pantry staples, kitchen quirks, scheduling notes..."></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" id="prefs-save">Save Preferences</button>
+      <span id="prefs-saved" class="small" style="margin-left: 12px;"></span>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <h1 class="page">Settings</h1>
+
+      <div class="card">
+        <h3>Anthropic API key</h3>
+        <p class="small">Stored in your browser's localStorage. <strong>It never leaves the browser</strong> — calls go directly from this page to api.anthropic.com.</p>
+        <div class="form-row">
+          <label>API key</label>
+          <input type="password" id="apikey" placeholder="sk-ant-..." />
+        </div>
+        <div class="form-row">
+          <label>Model</label>
+          <select id="model">
+            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (default)</option>
+            <option value="claude-opus-4-7">claude-opus-4-7</option>
+            <option value="claude-opus-4-6">claude-opus-4-6</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Max output tokens</label>
+          <input type="number" id="maxtokens" value="16000" min="1024" step="1024" />
+        </div>
+        <button class="btn-primary" id="settings-save">Save Settings</button>
+        <span id="settings-saved" class="small" style="margin-left: 12px;"></span>
+      </div>
+
+      <div class="callout">
+        <strong>Privacy note.</strong> Your API key, profile data, and generated meal plans live only in this browser's localStorage. Clearing site data wipes them. There is no backend.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module">
+// Lazy-load the SDK only when first needed. This way the UI still works
+// even if the CDN is slow/unreachable, and we can surface a clear error.
+let _AnthropicCtor = null;
+async function loadAnthropic() {
+  if (_AnthropicCtor) return _AnthropicCtor;
+  const sources = [
+    'https://esm.sh/@anthropic-ai/sdk',
+    'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm',
+  ];
+  let lastErr;
+  for (const src of sources) {
+    try {
+      const mod = await import(src);
+      _AnthropicCtor = mod.default || mod.Anthropic || mod;
+      return _AnthropicCtor;
+    } catch (e) { lastErr = e; console.warn('SDK load failed from', src, e); }
+  }
+  throw new Error('Could not load Anthropic SDK from any CDN: ' + (lastErr && lastErr.message));
+}
+
+// ---------------- localStorage layer ----------------
+const KEYS = {
+  pTamara: 'mealplanner.profile.tamara',
+  pDave: 'mealplanner.profile.dave',
+  prefs: 'mealplanner.preferences',
+  training: 'mealplanner.training.currentWeek',
+  plan: 'mealplanner.plan.current',
+  saved: 'mealplanner.savedMeals',
+  apiKey: 'mealplanner.settings.apiKey',
+  model: 'mealplanner.settings.model',
+  maxTokens: 'mealplanner.settings.maxTokens',
+};
+
+const DEFAULT_TAMARA = {
+  name: 'Tamara', weight: 70, height: 165, age: 41, sex: 'F',
+  goal: 'Maintain weight; powerlifting meet 2026-10-04',
+  proteinFloor: 145,
+  supplements: '1 protein smoothie/day, magnesium + creatine evenings',
+  allergies: '',
+};
+const DEFAULT_DAVE = {
+  name: 'Dave', weight: 90, height: 185, age: 40, sex: 'M',
+  goal: 'Lose 4–6 kg by 100km MTB race Sept 2026',
+  proteinFloor: 150,
+  supplements: '1 protein smoothie/day, magnesium + creatine evenings',
+  allergies: '',
+};
+const DEFAULT_PREFS = { favs: '', avoid: '', time: 'Cook fresh most weeknights; lunches cold or previous-night leftovers (e.g. tuna + cottage cheese on rice cakes)', other: 'Standard kitchen gear: oven, stovetop, blender, slow cooker / instant pot. Pescatarian + 1 beef-based meal per week.' };
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+let profiles = {
+  tamara: load(KEYS.pTamara, DEFAULT_TAMARA),
+  dave: load(KEYS.pDave, DEFAULT_DAVE),
+};
+let prefs = load(KEYS.prefs, DEFAULT_PREFS);
+let training = load(KEYS.training, defaultTrainingWeek());
+if (ensureTimeFields(training)) save(KEYS.training, training);
+let currentPlan = load(KEYS.plan, null);
+let savedMeals = load(KEYS.saved, []);
+let settings = {
+  apiKey: load(KEYS.apiKey, ''),
+  model: load(KEYS.model, 'claude-sonnet-4-6'),
+  maxTokens: load(KEYS.maxTokens, 16000),
+};
+
+function defaultTrainingWeek() {
+  const monday = nextMonday(new Date());
+  return {
+    weekStart: isoDate(monday),
+    days: DAYS.map(d => ({
+      day: d,
+      tamara: { activity: 'rest', minutes: 0, intensity: 'low', time: '' },
+      dave:   { activity: 'rest', minutes: 0, intensity: 'low', time: '' },
+      requiredIngredient: '',
+      notes: '',
+    })),
+    mix: { vegetarian: 1, pescatarian: 5, meat: 1 },
+  };
+}
+function ensureTimeFields(t) {
+  // Backfill optional fields on any persisted training week from before they existed
+  let touched = false;
+  (t.days || []).forEach(d => {
+    if (d.tamara && d.tamara.time == null) { d.tamara.time = ''; touched = true; }
+    if (d.dave && d.dave.time == null) { d.dave.time = ''; touched = true; }
+    if (d.requiredIngredient == null) { d.requiredIngredient = ''; touched = true; }
+  });
+  return touched;
+}
+function nextMonday(d) {
+  const x = new Date(d); const dow = x.getDay();
+  const diff = dow === 1 ? 0 : (dow === 0 ? 1 : 8 - dow);
+  x.setDate(x.getDate() + diff); x.setHours(0,0,0,0); return x;
+}
+function isoDate(d) { return d.toISOString().slice(0,10); }
+function addDays(iso, n) { const d = new Date(iso); d.setDate(d.getDate()+n); return isoDate(d); }
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); }
+
+const ACTIVITY_OPTIONS = ['rest','lift','ride-endurance','ride-intervals','pool','walk','run','other'];
+const INTENSITY_OPTIONS = ['low','moderate','high'];
+
+// ---------------- Navigation ----------------
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
+  if (name === 'plan') renderPlan();
+  if (name === 'saved') renderSaved();
+}
+document.querySelectorAll('#nav a').forEach(a => {
+  a.addEventListener('click', e => { e.preventDefault(); showView(a.dataset.view); });
+});
+
+// ---------------- Profiles view ----------------
+function renderProfiles() {
+  const t = profiles.tamara, d = profiles.dave;
+  document.getElementById('t-weight').value = t.weight;
+  document.getElementById('t-height').value = t.height;
+  document.getElementById('t-age').value = t.age;
+  document.getElementById('t-sex').value = t.sex;
+  document.getElementById('t-goal').value = t.goal;
+  document.getElementById('t-protein').value = t.proteinFloor;
+  document.getElementById('t-supps').value = t.supplements;
+  document.getElementById('t-allergies').value = t.allergies;
+  document.getElementById('d-weight').value = d.weight;
+  document.getElementById('d-height').value = d.height;
+  document.getElementById('d-age').value = d.age;
+  document.getElementById('d-sex').value = d.sex;
+  document.getElementById('d-goal').value = d.goal;
+  document.getElementById('d-protein').value = d.proteinFloor;
+  document.getElementById('d-supps').value = d.supplements;
+  document.getElementById('d-allergies').value = d.allergies;
+}
+document.getElementById('profiles-save').addEventListener('click', () => {
+  profiles.tamara = {
+    name: 'Tamara',
+    weight: +document.getElementById('t-weight').value,
+    height: +document.getElementById('t-height').value,
+    age: +document.getElementById('t-age').value,
+    sex: document.getElementById('t-sex').value,
+    goal: document.getElementById('t-goal').value,
+    proteinFloor: +document.getElementById('t-protein').value,
+    supplements: document.getElementById('t-supps').value,
+    allergies: document.getElementById('t-allergies').value,
+  };
+  profiles.dave = {
+    name: 'Dave',
+    weight: +document.getElementById('d-weight').value,
+    height: +document.getElementById('d-height').value,
+    age: +document.getElementById('d-age').value,
+    sex: document.getElementById('d-sex').value,
+    goal: document.getElementById('d-goal').value,
+    proteinFloor: +document.getElementById('d-protein').value,
+    supplements: document.getElementById('d-supps').value,
+    allergies: document.getElementById('d-allergies').value,
+  };
+  save(KEYS.pTamara, profiles.tamara);
+  save(KEYS.pDave, profiles.dave);
+  flash('profiles-saved', 'Saved.');
+});
+
+// ---------------- Preferences view ----------------
+function renderPrefs() {
+  document.getElementById('pref-favs').value = prefs.favs;
+  document.getElementById('pref-avoid').value = prefs.avoid;
+  document.getElementById('pref-time').value = prefs.time;
+  document.getElementById('pref-other').value = prefs.other;
+}
+document.getElementById('prefs-save').addEventListener('click', () => {
+  prefs = {
+    favs: document.getElementById('pref-favs').value,
+    avoid: document.getElementById('pref-avoid').value,
+    time: document.getElementById('pref-time').value,
+    other: document.getElementById('pref-other').value,
+  };
+  save(KEYS.prefs, prefs);
+  flash('prefs-saved', 'Saved.');
+});
+
+// ---------------- Settings view ----------------
+function renderSettings() {
+  document.getElementById('apikey').value = settings.apiKey;
+  document.getElementById('model').value = settings.model;
+  document.getElementById('maxtokens').value = settings.maxTokens;
+}
+document.getElementById('settings-save').addEventListener('click', () => {
+  settings.apiKey = document.getElementById('apikey').value.trim();
+  settings.model = document.getElementById('model').value;
+  settings.maxTokens = +document.getElementById('maxtokens').value;
+  save(KEYS.apiKey, settings.apiKey);
+  save(KEYS.model, settings.model);
+  save(KEYS.maxTokens, settings.maxTokens);
+  flash('settings-saved', 'Saved.');
+});
+
+function flash(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ''; }, 2000);
+}
+
+// ---------------- Training view ----------------
+function renderTraining() {
+  document.getElementById('weekStart').value = training.weekStart;
+  const tbody = document.getElementById('training-body');
+  tbody.innerHTML = '';
+  training.days.forEach((day, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="day-col">${day.day}</td>
+      <td>
+        <div class="person-section">
+          <select data-i="${idx}" data-p="tamara" data-f="activity">${ACTIVITY_OPTIONS.map(o => `<option ${o===day.tamara.activity?'selected':''}>${o}</option>`).join('')}</select>
+          <input type="number" min="0" data-i="${idx}" data-p="tamara" data-f="minutes" value="${day.tamara.minutes}" />
+          <select data-i="${idx}" data-p="tamara" data-f="intensity">${INTENSITY_OPTIONS.map(o => `<option ${o===day.tamara.intensity?'selected':''}>${o}</option>`).join('')}</select>
+          <input type="time" data-i="${idx}" data-p="tamara" data-f="time" value="${escapeAttr(day.tamara.time || '')}" />
+        </div>
+      </td>
+      <td>
+        <div class="person-section">
+          <select data-i="${idx}" data-p="dave" data-f="activity">${ACTIVITY_OPTIONS.map(o => `<option ${o===day.dave.activity?'selected':''}>${o}</option>`).join('')}</select>
+          <input type="number" min="0" data-i="${idx}" data-p="dave" data-f="minutes" value="${day.dave.minutes}" />
+          <select data-i="${idx}" data-p="dave" data-f="intensity">${INTENSITY_OPTIONS.map(o => `<option ${o===day.dave.intensity?'selected':''}>${o}</option>`).join('')}</select>
+          <input type="time" data-i="${idx}" data-p="dave" data-f="time" value="${escapeAttr(day.dave.time || '')}" />
+        </div>
+      </td>
+      <td><input type="text" data-i="${idx}" data-f="requiredIngredient" value="${escapeAttr(day.requiredIngredient || '')}" placeholder="e.g. tuna, leftover chicken" /></td>
+      <td><input type="text" data-i="${idx}" data-f="notes" value="${escapeAttr(day.notes)}" placeholder="e.g. race sim" /></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.addEventListener('change', onTrainingChange);
+  tbody.addEventListener('input', onTrainingChange);
+
+  document.getElementById('mix-veg').value = training.mix.vegetarian;
+  document.getElementById('mix-pesc').value = training.mix.pescatarian;
+  document.getElementById('mix-meat').value = training.mix.meat;
+  updateMixTotal();
+}
+function escapeAttr(s) { return String(s||'').replaceAll('"','&quot;'); }
+const DEFAULT_TIMES = { lift: '06:00', pool: '07:00' };
+function onTrainingChange(e) {
+  const t = e.target;
+  const i = +t.dataset.i;
+  if (t.dataset.p) {
+    const person = t.dataset.p;
+    const field = t.dataset.f;
+    training.days[i][person][field] = field === 'minutes' ? +t.value : t.value;
+    // When activity changes, populate a default time if the time field is empty
+    if (field === 'activity' && DEFAULT_TIMES[t.value] && !training.days[i][person].time) {
+      training.days[i][person].time = DEFAULT_TIMES[t.value];
+      const timeInput = document.querySelector(`input[type=time][data-i="${i}"][data-p="${person}"]`);
+      if (timeInput) timeInput.value = DEFAULT_TIMES[t.value];
+    }
+  } else if (t.dataset.f === 'notes') {
+    training.days[i].notes = t.value;
+  } else if (t.dataset.f === 'requiredIngredient') {
+    training.days[i].requiredIngredient = t.value;
+  }
+  save(KEYS.training, training);
+}
+document.getElementById('weekStart').addEventListener('change', e => {
+  training.weekStart = e.target.value;
+  save(KEYS.training, training);
+});
+['mix-veg','mix-pesc','mix-meat'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    training.mix.vegetarian = +document.getElementById('mix-veg').value || 0;
+    training.mix.pescatarian = +document.getElementById('mix-pesc').value || 0;
+    training.mix.meat = +document.getElementById('mix-meat').value || 0;
+    save(KEYS.training, training);
+    updateMixTotal();
+  });
+});
+function updateMixTotal() {
+  const total = training.mix.vegetarian + training.mix.pescatarian + training.mix.meat;
+  const el = document.getElementById('mix-total');
+  el.textContent = total + ' / 7';
+  el.className = 'total ' + (total === 7 ? 'ok' : 'bad');
+}
+
+// ---------------- Plan view ----------------
+function renderPlan() {
+  const root = document.getElementById('plan-content');
+  if (!currentPlan) {
+    root.innerHTML = `
+      <div class="empty-state">
+        <h2>No plan yet</h2>
+        <p>Head to <a data-link="training">Training Week</a> to set this week's schedule and generate a plan.</p>
+      </div>`;
+    root.querySelector('[data-link="training"]').addEventListener('click', e => { e.preventDefault(); showView('training'); });
+    return;
+  }
+  const p = currentPlan;
+  const ws = p.week_summary || {};
+  let html = `
+    <div class="hero">
+      <div class="label">Week of ${ws.week_starting || ''}</div>
+      <h2>This Week's Plan</h2>
+      <div class="summary">${escapeHtml(ws.training_overview || '')}</div>
+      <div class="strategies">
+        <div class="strategy"><strong>Tamara</strong>${escapeHtml(ws.tamara_strategy || '')}</div>
+        <div class="strategy"><strong>Dave</strong>${escapeHtml(ws.dave_strategy || '')}</div>
+      </div>
+    </div>
+  `;
+  (p.days || []).forEach((day, dayIdx) => {
+    html += renderDay(day, dayIdx);
+  });
+  if (p.shopping_list) html += renderShopping(p.shopping_list);
+  if (p.notes_for_dave) html += `<div class="callout"><strong>Notes:</strong> ${escapeHtml(p.notes_for_dave)}</div>`;
+  root.innerHTML = html;
+
+  // Wire swap buttons
+  root.querySelectorAll('.swap-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleSwap(btn));
+  });
+}
+
+function renderDay(day, dayIdx) {
+  const macroChips = (m, who) => {
+    if (!m) return '';
+    return `<div class="macros">
+      <span class="pill teal">${who}</span>
+      <span class="pill muted">${m.kcal} kcal</span>
+      <span class="pill muted">${m.protein_g}g P</span>
+      <span class="pill muted">${m.carbs_g}g C</span>
+      <span class="pill muted">${m.fat_g}g F</span>
+    </div>`;
+  };
+  const meals = day.meals || {};
+  const slots = ['breakfast','lunch','dinner'];
+  let mealsHtml = '<div class="meal-grid">';
+  slots.forEach(slot => {
+    const m = meals[slot];
+    if (!m) return;
+    mealsHtml += `
+      <div class="meal-card" data-day="${dayIdx}" data-slot="${slot}">
+        <div class="slot">${slot}</div>
+        <div class="name">${escapeHtml(m.name || '')}</div>
+        <span class="pill cat-${m.category || 'pescatarian'}">${m.category || ''}</span>
+        ${m.ingredients && m.ingredients.length ? `<div class="ingredients">${escapeHtml(m.ingredients.join(', '))}</div>` : ''}
+        ${m.tamara_serving ? `<div class="serving serving-tamara"><span class="serving-who">Tamara:</span> ${escapeHtml(m.tamara_serving)}</div>` : ''}
+        ${m.dave_serving ? `<div class="serving serving-dave"><span class="serving-who">Dave:</span> ${escapeHtml(m.dave_serving)}</div>` : ''}
+        <div class="meta">${m.prep_minutes ? m.prep_minutes + ' min' : ''}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}</div>
+        <button class="swap-btn" data-kind="meal">Swap</button>
+        <button class="save-btn" data-kind="meal">${isSaved(m) ? 'Saved ✓' : 'Save'}</button>
+        <div class="swap-error"></div>
+      </div>`;
+  });
+  mealsHtml += '</div>';
+
+  let snacksHtml = '';
+  if (Array.isArray(meals.snacks) && meals.snacks.length) {
+    snacksHtml = `<div class="snacks"><div class="slot">Snacks</div><div class="snack-list">`;
+    meals.snacks.forEach((s, sIdx) => {
+      const blob = `${s.notes || ''} ${s.serving || ''}`.toLowerCase();
+      const hasT = /tamara/.test(blob);
+      const hasD = /dave/.test(blob);
+      const personClass = (hasT && !hasD) ? 'serving-tamara' : (hasD && !hasT) ? 'serving-dave' : '';
+      snacksHtml += `
+        <div class="snack-card" data-day="${dayIdx}" data-slot="snacks" data-snack-idx="${sIdx}">
+          <div class="name">${escapeHtml(s.name || '')}</div>
+          <span class="pill cat-${s.category || 'pescatarian'}">${s.category || ''}</span>
+          ${s.serving ? `<div class="serving ${personClass}">${escapeHtml(s.serving)}</div>` : ''}
+          <div class="meta">${escapeHtml(s.notes || '')}</div>
+          <button class="swap-btn" data-kind="snack">Swap</button>
+          <div class="swap-error"></div>
+        </div>`;
+    });
+    snacksHtml += `</div></div>`;
+  }
+
+  const tr = day.training || {};
+  return `
+    <div class="day-card">
+      <div class="day-header">
+        <div><span class="day-name">${day.day || ''}</span> <span class="day-date">${day.date ? fmtDate(day.date) : ''}</span></div>
+      </div>
+      <div class="training-row">
+        <div class="training-cell">
+          <div class="who">Tamara</div>
+          <div class="activity">${escapeHtml(tr.tamara || '')}</div>
+          ${macroChips(day.macros && day.macros.tamara, 'targets')}
+        </div>
+        <div class="training-cell">
+          <div class="who">Dave</div>
+          <div class="activity">${escapeHtml(tr.dave || '')}</div>
+          ${macroChips(day.macros && day.macros.dave, 'targets')}
+        </div>
+      </div>
+      ${mealsHtml}
+      ${snacksHtml}
+    </div>
+  `;
+}
+
+function renderShopping(sl) {
+  const sections = [
+    ['Produce', sl.produce], ['Proteins', sl.proteins], ['Dairy', sl.dairy],
+    ['Pantry', sl.pantry], ['Other', sl.other],
+  ];
+  let html = `<h2>Shopping list</h2><div class="shopping-grid">`;
+  sections.forEach(([title, items]) => {
+    if (!Array.isArray(items) || !items.length) return;
+    html += `<div class="shopping-section"><h4>${title}</h4><ul>`;
+    items.forEach(it => { html += `<li>${escapeHtml(it)}</li>`; });
+    html += `</ul></div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------------- Claude API integration ----------------
+
+const MEAL_PLAN_TOOL = {
+  name: 'submit_meal_plan',
+  description: 'Submit a complete 7-day meal plan tailored to the training week, with per-person macros, meals, and shopping list.',
+  input_schema: {
+    type: 'object',
+    required: ['week_summary','days','shopping_list'],
+    properties: {
+      week_summary: {
+        type: 'object',
+        required: ['week_starting','training_overview','dave_strategy','tamara_strategy'],
+        properties: {
+          week_starting: { type: 'string', description: 'ISO date for Monday of the week' },
+          training_overview: { type: 'string', description: '1–2 sentence overview of the week\'s training load' },
+          dave_strategy: { type: 'string', description: 'How the plan addresses Dave\'s deficit + endurance loading' },
+          tamara_strategy: { type: 'string', description: 'How the plan addresses Tamara\'s maintenance + protein floor + lift days' },
+        },
+      },
+      days: {
+        type: 'array', minItems: 7, maxItems: 7,
+        items: {
+          type: 'object',
+          required: ['day','date','training','macros','meals'],
+          properties: {
+            day: { type: 'string', enum: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+            date: { type: 'string', description: 'ISO date for this day' },
+            training: {
+              type: 'object',
+              required: ['dave','tamara'],
+              properties: {
+                dave: { type: 'string' },
+                tamara: { type: 'string' },
+              },
+            },
+            macros: {
+              type: 'object',
+              required: ['dave','tamara'],
+              properties: {
+                dave:   macroSchema(),
+                tamara: macroSchema(),
+              },
+            },
+            meals: {
+              type: 'object',
+              required: ['breakfast','lunch','dinner','snacks'],
+              properties: {
+                breakfast: mealSchema(),
+                lunch: mealSchema(),
+                dinner: mealSchema(),
+                snacks: { type: 'array', items: snackSchema() },
+              },
+            },
+          },
+        },
+      },
+      shopping_list: {
+        type: 'object',
+        properties: {
+          produce: { type: 'array', items: { type: 'string' } },
+          proteins: { type: 'array', items: { type: 'string' } },
+          dairy: { type: 'array', items: { type: 'string' } },
+          pantry: { type: 'array', items: { type: 'string' } },
+          other: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      notes_for_dave: { type: 'string' },
+    },
+  },
+};
+
+const SWAP_TOOL = {
+  name: 'submit_meal_swap',
+  description: 'Submit a single replacement meal or snack with updated macros.',
+  input_schema: {
+    type: 'object',
+    required: ['meal'],
+    properties: {
+      meal: mealSchema(),
+      macros: {
+        type: 'object',
+        properties: { dave: macroSchema(), tamara: macroSchema() },
+      },
+    },
+  },
+};
+
+function macroSchema() {
+  return {
+    type: 'object',
+    required: ['kcal','protein_g','carbs_g','fat_g'],
+    properties: {
+      kcal: { type: 'number' }, protein_g: { type: 'number' },
+      carbs_g: { type: 'number' }, fat_g: { type: 'number' },
+    },
+  };
+}
+function mealSchema() {
+  return {
+    type: 'object',
+    required: ['name','category','ingredients','prep_minutes','dave_serving','tamara_serving'],
+    properties: {
+      name: { type: 'string' },
+      category: { type: 'string', enum: ['vegetarian','pescatarian','meat'] },
+      ingredients: { type: 'array', items: { type: 'string' } },
+      prep_minutes: { type: 'number' },
+      dave_serving: { type: 'string', description: "Dave's portion with explicit quantities, e.g. '180g salmon, 1.5 cups cooked rice, 2 cups roasted veg, 1 tbsp olive oil'. Calibrated to his weight (90kg), cutting goal (~500 kcal/day deficit avg), 150g+ protein floor, and that day's training load." },
+      tamara_serving: { type: 'string', description: "Tamara's portion with explicit quantities, e.g. '140g salmon, 1 cup cooked rice, 2 cups roasted veg, 1 tbsp olive oil'. Calibrated to her weight (70kg), maintenance goal, 145g+ protein floor, and that day's training load." },
+      notes: { type: 'string' },
+    },
+  };
+}
+function snackSchema() {
+  return {
+    type: 'object',
+    required: ['name','category','serving'],
+    properties: {
+      name: { type: 'string' },
+      category: { type: 'string', enum: ['vegetarian','pescatarian','meat'] },
+      serving: { type: 'string', description: "Explicit portion size for whoever this snack is for, e.g. '1 banana + 2 tbsp peanut butter' or 'For Dave: 40g whey + 250ml milk + 1 banana'. If the snack is for both, give both portions inline." },
+      notes: { type: 'string' },
+    },
+  };
+}
+
+// Simple non-cryptographic hash so the system prompt changes when profile/prefs change
+function hashStr(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return (h >>> 0).toString(16);
+}
+
+function buildSystemPrompt() {
+  const t = profiles.tamara, d = profiles.dave;
+  const profileBlob = JSON.stringify({ t, d, prefs });
+  const cfgHash = hashStr(profileBlob);
+  return `You are a sports nutrition planner generating a 7-day meal plan for two athletes living together.
+
+## Athletes
+
+**Tamara** — ${t.weight} kg, ${t.height} cm, ${t.age} yo, ${t.sex}.
+Goal: ${t.goal}.
+Daily protein floor: ${t.proteinFloor} g.
+Supplements: ${t.supplements}.
+Allergies / dislikes: ${t.allergies || 'none'}.
+
+**Dave** — ${d.weight} kg, ${d.height} cm, ${d.age} yo, ${d.sex}.
+Goal: ${d.goal}.
+Daily protein floor: ${d.proteinFloor} g.
+Supplements: ${d.supplements}.
+Allergies / dislikes: ${d.allergies || 'none'}.
+
+## Standing dietary rules
+
+- **Breakfasts: ALWAYS vegetarian.** Eggs, oats, yogurt, smoothie bowls, etc.
+- **Lunches: ALWAYS pescatarian OR previous-night leftovers.** Default lean on canned tuna (e.g. tuna + cottage cheese on rice cakes, tuna salad, tuna + grain bowl). Use leftovers from the prior night's dinner where it works (especially after slow-cooker / batch dinners).
+- **Dinners: follow the dinner-mix counts the user provides** (vegetarian / pescatarian / meat dinners must sum to 7).
+- 1 beef-based meal per week is the default for the meat dinner slot.
+- 1 protein smoothie per day each — count this as one of the snacks.
+- Both eat the same dinners (cooked together).
+- Cook fresh most weeknights.
+- Standard kitchen: oven, stovetop, blender, slow cooker / instant pot.
+
+## Snacks — pre/post workout fueling is the priority
+
+Each person gets snacks tied to their training. When a non-trivial session is scheduled, you MUST include:
+- **Pre-workout snack** (60–90 min before): light, mostly carbs + a little protein. Examples: banana + nut butter, oats + berries, toast + honey. For early-morning sessions (before 7am), keep it small or skip if they prefer fasted training — note this in the snack notes.
+- **Post-workout snack/meal** (within 60 min after): higher protein (25–40 g) + carbs to replenish glycogen. The protein smoothie is often the post-workout snack. For long endurance rides, post-workout fuel is critical — front-load it.
+
+**Exceptions — no pre/post-workout snacks needed for:**
+- **walk** activities (any duration) — recovery work, doesn't warrant dedicated fueling
+- **rest** days
+
+For these, only general daily snacks (afternoon, evening protein smoothie, etc.) are needed.
+
+In the snack \`notes\` field, ALWAYS write WHO it's for and WHEN, e.g. "Pre-workout for Tamara — 6am lift", "Post-ride for Dave — after 3hr endurance", "Evening for both — magnesium + creatine". This is how the user knows what to eat when.
+
+On rest days for both, snacks are general (afternoon, evening protein smoothie, etc.).
+
+## Preferences
+
+Favorite meals: ${prefs.favs || '(none specified)'}
+Foods to avoid: ${prefs.avoid || '(none specified)'}
+Weeknight time budget: ${prefs.time}
+Other: ${prefs.other}
+
+## Macro targeting
+
+Use the Mifflin-St Jeor BMR formula:
+- Male: BMR = 10×kg + 6.25×cm − 5×age + 5
+- Female: BMR = 10×kg + 6.25×cm − 5×age − 161
+
+Add daily activity calories on top of BMR + light baseline activity (≈ BMR × 1.3 sedentary multiplier):
+- Lift session (60 min, high intensity): ≈ 250–400 kcal
+- MTB endurance ride: ≈ 500 kcal/hour
+- MTB intervals: ≈ 600 kcal/hour
+- Pool swim: ≈ 300 kcal/hour
+- Walk: ≈ 200 kcal/hour
+- Run: ≈ 600 kcal/hour
+- Rest day: no addition
+
+Per person:
+
+**Dave (cutting):**
+- Target ~500 kcal/day deficit averaged across the week (not necessarily every day)
+- Never below ~2200 kcal on long-ride days
+- Protein: ${d.proteinFloor}+ g/day every day
+- Carb-load on long-ride days (>2 hr endurance or intervals); modest carbs on rest days
+- Fat: ~25–30% of kcal
+
+**Tamara (maintenance + powerlifting):**
+- Target maintenance (TDEE ± 100 kcal)
+- Protein: ${t.proteinFloor}+ g/day every day
+- Higher carbs on lift days (Tue/Thu/Fri typically) to support training
+- Fat: ~25–30% of kcal
+
+## Output
+
+Use the submit_meal_plan tool. The dinner-mix counts apply ONLY to dinner slots (must sum to 7 across the week). Breakfasts MUST all be category "vegetarian". Lunches MUST all be category "pescatarian" (the leftovers-from-last-night case still counts as pescatarian unless that prior dinner was the meat dinner — in which case use the leftover anyway and tag it "meat" for that one lunch).
+
+Each meal needs a short ingredients list (just the items, not quantities — quantities go in the per-person serving fields) and a prep_minutes estimate. For lunches that are leftovers, the name should make that clear (e.g. "Leftover Tuesday salmon traybake") and ingredients can be empty or minimal.
+
+**Per-person serving sizes are REQUIRED on every meal.** Fill \`dave_serving\` and \`tamara_serving\` with explicit quantities (grams, cups, tbsp, count, etc.) calibrated to:
+- Dave: 90 kg, cutting (~500 kcal/day deficit avg), 150g+ protein/day, larger portions on long-ride days, smaller on rest days. Generally Dave's portions are 1.3–1.6× Tamara's by mass for shared dinners, but adjusted by daily macro targets.
+- Tamara: 70 kg, maintenance, 145g+ protein/day, higher carbs on lift days (Tue/Thu/Fri).
+The two servings should sum (roughly) to that day's macro targets for each person across breakfast + lunch + dinner + snacks. Same dish, different portions — that's the norm for dinners (cooked together). Breakfasts and lunches can be different dishes per person if it makes the macro math work better; if so, name should reflect that or use the notes field.
+
+Snacks also need an explicit \`serving\` field with quantities, e.g. "40g whey + 250ml whole milk + 1 banana" not just "protein smoothie".
+
+Snacks should explicitly cover pre-workout and post-workout fueling tied to each person's session times — see the snack rules above.
+
+Shopping list is consolidated across the week, grouped by aisle. Reuse ingredients across meals to keep the shopping list short and reduce waste.
+
+[config-hash: ${cfgHash}]`;
+}
+
+function buildUserMessage() {
+  const t = training;
+  const dayLines = t.days.map((d, i) => {
+    const date = addDays(t.weekStart, i);
+    const fmt = (p) => {
+      if (p.activity === 'rest') return 'rest';
+      const time = p.time ? ` @ ${p.time}` : '';
+      return `${p.activity} ${p.minutes}min ${p.intensity}${time}`;
+    };
+    const req = d.requiredIngredient ? ` | MUST USE: ${d.requiredIngredient}` : '';
+    return `- ${d.day} ${date} — Tamara: ${fmt(d.tamara)} | Dave: ${fmt(d.dave)}${req}${d.notes ? ' | notes: ' + d.notes : ''}`;
+  }).join('\n');
+
+  const reqDays = t.days.filter(d => d.requiredIngredient && d.requiredIngredient.trim());
+  const reqBlock = reqDays.length ? `
+
+Required dinner ingredients (build that day's DINNER around the named ingredient — do not satisfy this by putting it in breakfast, lunch, or a snack):
+${reqDays.map(d => `- ${d.day} dinner: ${d.requiredIngredient}`).join('\n')}` : '';
+
+  const maxSaved = Math.floor(21 * 0.4); // 8
+  const savedBlock = savedMeals.length ? `
+
+Saved meals (the household has saved these — feel free to reuse up to ${maxSaved} of them across the week, but no more than 40% of total meals; the rest must be new):
+${savedMeals.map(m => `- [${m.category}] ${m.name}${m.ingredients && m.ingredients.length ? ' (' + m.ingredients.slice(0,6).join(', ') + ')' : ''}`).join('\n')}
+
+When reusing a saved meal, keep its name and ingredients but recompute \`dave_serving\` and \`tamara_serving\` to fit that day's macro targets. Mix saved meals with new ideas — don't use them all in a row.` : '';
+
+  return `Generate a 7-day meal plan for the week starting ${t.weekStart}.
+
+Training schedule (times are 24-hr local):
+${dayLines}
+
+Dinner mix for the week (must sum to 7):
+- Vegetarian dinners: ${t.mix.vegetarian}
+- Pescatarian dinners: ${t.mix.pescatarian}
+- Meat dinners: ${t.mix.meat}${reqBlock}${savedBlock}
+
+Reminders:
+- Breakfasts: all vegetarian.
+- Lunches: pescatarian (canned tuna common) or previous-night leftovers — you decide which days are which based on what dinner was the night before.
+- Snacks: include explicit pre-workout and post-workout snacks for each scheduled session, tagged in notes with WHO and WHEN. Use the session times above to time them.
+
+Use the submit_meal_plan tool.`;
+}
+
+async function getClient() {
+  if (!settings.apiKey) throw new Error('No API key set. Go to Settings and add your Anthropic API key.');
+  const Anthropic = await loadAnthropic();
+  return new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+}
+
+async function generatePlan() {
+  const total = training.mix.vegetarian + training.mix.pescatarian + training.mix.meat;
+  if (total !== 7) throw new Error(`Dinner mix must sum to 7 (currently ${total}).`);
+
+  const client = await getClient();
+  const system = buildSystemPrompt();
+  const userMsg = buildUserMessage();
+
+  const response = await client.messages.create({
+    model: settings.model,
+    max_tokens: settings.maxTokens,
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    tools: [MEAL_PLAN_TOOL],
+    tool_choice: { type: 'tool', name: 'submit_meal_plan' },
+    messages: [{ role: 'user', content: userMsg }],
+  });
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'submit_meal_plan');
+  if (!toolUse) throw new Error('Claude did not return a meal plan. Stop reason: ' + response.stop_reason);
+
+  const usage = response.usage || {};
+  console.log('Plan generation usage:', usage);
+
+  return { plan: toolUse.input, usage };
+}
+
+async function swapMeal({ dayIdx, slot, snackIdx, originalMeal, requiredMacros, category }) {
+  const client = await getClient();
+  const system = buildSystemPrompt();
+  const day = currentPlan.days[dayIdx];
+  const userMsg = `Swap one meal from the current plan for an alternative.
+
+Day: ${day.day} ${day.date}
+Slot: ${slot}${snackIdx != null ? ` (snack #${snackIdx + 1})` : ''}
+Original meal: ${originalMeal.name}
+Required category (must match): ${category}
+${requiredMacros ? `Required macros (target within ±10%):
+- kcal: ${requiredMacros.kcal}
+- protein: ${requiredMacros.protein_g} g
+- carbs: ${requiredMacros.carbs_g} g
+- fat: ${requiredMacros.fat_g} g
+` : ''}
+Day's training context:
+- Tamara: ${day.training.tamara}
+- Dave: ${day.training.dave}
+
+Return one alternative meal that:
+- Stays in the same category (${category})
+- Is meaningfully different from the original (different protein source or cuisine)
+- Fits the time budget and household preferences
+- For breakfast/lunch/dinner: matches the macros above within ~±10%
+
+Use the submit_meal_swap tool.`;
+
+  const response = await client.messages.create({
+    model: settings.model,
+    max_tokens: 2000,
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    tools: [SWAP_TOOL],
+    tool_choice: { type: 'tool', name: 'submit_meal_swap' },
+    messages: [{ role: 'user', content: userMsg }],
+  });
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'submit_meal_swap');
+  if (!toolUse) throw new Error('No swap returned. Stop reason: ' + response.stop_reason);
+
+  console.log('Swap usage:', response.usage);
+  return toolUse.input;
+}
+
+// ---------------- Generate button ----------------
+document.getElementById('generate-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('generate-btn');
+  const status = document.getElementById('generate-status');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  status.innerHTML = '';
+  try {
+    const { plan, usage } = await generatePlan();
+    currentPlan = plan;
+    save(KEYS.plan, currentPlan);
+    const cacheLine = (usage.cache_read_input_tokens || usage.cache_creation_input_tokens)
+      ? ` (cache: ${usage.cache_read_input_tokens || 0} read, ${usage.cache_creation_input_tokens || 0} created)` : '';
+    status.innerHTML = `<div class="callout ok">Plan generated. ${usage.input_tokens || 0} in / ${usage.output_tokens || 0} out${cacheLine}.</div>`;
+    setTimeout(() => showView('plan'), 800);
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = `<div class="errbox">${escapeHtml(err.message || String(err))}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Meal Plan';
+  }
+});
+
+// ---------------- Swap handler ----------------
+async function handleSwap(btn) {
+  const card = btn.closest('.meal-card, .snack-card');
+  const dayIdx = +card.dataset.day;
+  const slot = card.dataset.slot;
+  const snackIdx = card.dataset.snackIdx != null ? +card.dataset.snackIdx : null;
+  const errEl = card.querySelector('.swap-error');
+  errEl.textContent = '';
+  card.classList.add('swapping');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const day = currentPlan.days[dayIdx];
+    let originalMeal, category, requiredMacros = null;
+    if (slot === 'snacks') {
+      originalMeal = day.meals.snacks[snackIdx];
+      category = originalMeal.category;
+    } else {
+      originalMeal = day.meals[slot];
+      category = originalMeal.category;
+      const tMacros = day.macros && day.macros.tamara;
+      const dMacros = day.macros && day.macros.dave;
+      if (tMacros && dMacros) {
+        requiredMacros = {
+          kcal: Math.round((tMacros.kcal + dMacros.kcal) / 2 / 3),
+          protein_g: Math.round((tMacros.protein_g + dMacros.protein_g) / 2 / 3),
+          carbs_g: Math.round((tMacros.carbs_g + dMacros.carbs_g) / 2 / 3),
+          fat_g: Math.round((tMacros.fat_g + dMacros.fat_g) / 2 / 3),
+        };
+      }
+    }
+
+    const result = await swapMeal({ dayIdx, slot, snackIdx, originalMeal, requiredMacros, category });
+
+    if (slot === 'snacks') {
+      currentPlan.days[dayIdx].meals.snacks[snackIdx] = result.meal;
+    } else {
+      currentPlan.days[dayIdx].meals[slot] = result.meal;
+      if (result.macros) {
+        currentPlan.days[dayIdx].macros = {
+          ...currentPlan.days[dayIdx].macros,
+          ...result.macros,
+        };
+      }
+    }
+    save(KEYS.plan, currentPlan);
+    renderPlan();
+  } catch (err) {
+    console.error(err);
+    errEl.textContent = err.message || String(err);
+    card.classList.remove('swapping');
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// ---------------- Saved meals ----------------
+function mealKey(m) {
+  return (m.name || '').trim().toLowerCase();
+}
+function isSaved(m) {
+  if (!m || !m.name) return false;
+  const k = mealKey(m);
+  return savedMeals.some(s => mealKey(s) === k);
+}
+function saveMeal(m) {
+  if (!m || !m.name) return;
+  if (isSaved(m)) return;
+  savedMeals.push({
+    name: m.name,
+    category: m.category,
+    ingredients: m.ingredients || [],
+    prep_minutes: m.prep_minutes,
+    dave_serving: m.dave_serving || '',
+    tamara_serving: m.tamara_serving || '',
+    notes: m.notes || '',
+    saved_at: new Date().toISOString().slice(0,10),
+  });
+  save(KEYS.saved, savedMeals);
+}
+function unsaveMeal(name) {
+  const k = (name || '').trim().toLowerCase();
+  savedMeals = savedMeals.filter(s => mealKey(s) !== k);
+  save(KEYS.saved, savedMeals);
+}
+function renderSaved() {
+  const root = document.getElementById('saved-content');
+  if (!savedMeals.length) {
+    root.innerHTML = `<div class="empty-state"><h2>No saved meals yet</h2><p>Click <strong>Save</strong> on any meal in This Week's Plan to add it here.</p></div>`;
+    return;
+  }
+  const groups = { vegetarian: [], pescatarian: [], meat: [] };
+  savedMeals.forEach(m => { (groups[m.category] || groups.pescatarian).push(m); });
+  let html = '';
+  ['vegetarian','pescatarian','meat'].forEach(cat => {
+    if (!groups[cat].length) return;
+    html += `<h2>${cat.charAt(0).toUpperCase() + cat.slice(1)} (${groups[cat].length})</h2><div class="meal-grid">`;
+    groups[cat].forEach(m => {
+      html += `
+        <div class="meal-card">
+          <span class="pill cat-${m.category}">${m.category}</span>
+          <div class="name">${escapeHtml(m.name)}</div>
+          ${m.ingredients && m.ingredients.length ? `<div class="ingredients">${escapeHtml(m.ingredients.join(', '))}</div>` : ''}
+          ${m.tamara_serving ? `<div class="serving serving-tamara"><span class="serving-who">Tamara:</span> ${escapeHtml(m.tamara_serving)}</div>` : ''}
+          ${m.dave_serving ? `<div class="serving serving-dave"><span class="serving-who">Dave:</span> ${escapeHtml(m.dave_serving)}</div>` : ''}
+          <div class="meta">${m.prep_minutes ? m.prep_minutes + ' min' : ''}${m.notes ? ' · ' + escapeHtml(m.notes) : ''}${m.saved_at ? ' · saved ' + m.saved_at : ''}</div>
+          <button class="save-btn saved" data-remove="${escapeAttr(m.name)}">Remove</button>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+  root.innerHTML = html;
+  root.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      unsaveMeal(btn.dataset.remove);
+      renderSaved();
+    });
+  });
+}
+
+// Plan view delegates click events; wire save buttons via the existing plan container
+document.getElementById('plan-content').addEventListener('click', (e) => {
+  const btn = e.target.closest('.save-btn');
+  if (!btn) return;
+  const card = btn.closest('.meal-card, .snack-card');
+  if (!card) return;
+  const dayIdx = +card.dataset.day;
+  const slot = card.dataset.slot;
+  const snackIdx = card.dataset.snackIdx != null ? +card.dataset.snackIdx : null;
+  let meal;
+  if (slot === 'snacks') meal = currentPlan.days[dayIdx].meals.snacks[snackIdx];
+  else meal = currentPlan.days[dayIdx].meals[slot];
+  if (isSaved(meal)) {
+    unsaveMeal(meal.name);
+    btn.textContent = 'Save';
+    btn.classList.remove('saved');
+  } else {
+    saveMeal(meal);
+    btn.textContent = 'Saved ✓';
+    btn.classList.add('saved');
+  }
+});
+
+// ---------------- Init ----------------
+renderProfiles();
+renderPrefs();
+renderSettings();
+renderTraining();
+renderPlan();
+</script>
+</body>
+</html>
